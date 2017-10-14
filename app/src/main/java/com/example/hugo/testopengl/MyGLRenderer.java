@@ -2,6 +2,7 @@ package com.example.hugo.testopengl;
 
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.Matrix;
 
 import com.example.hugo.testopengl.shapes.Square;
 import com.example.hugo.testopengl.shapes.Triangle;
@@ -14,7 +15,13 @@ import javax.microedition.khronos.opengles.GL10;
  */
 
 public class MyGLRenderer implements GLSurfaceView.Renderer {
+    //objeto para desenhar
     private Triangle mTriangle;
+
+    //MVPMatrix = Model View Projection Matrix
+    private final float[] mMVPMatrix = new float[16];
+    private final float[] mProjectionMatrix = new float[16];
+    private final float[] mViewMatrix = new float[16];
 
     //chamada uma vez para inicializar o ambiente da view OpenGL ES
     @Override
@@ -28,9 +35,12 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
     //chamada se a geometria da view muda (por exemplo, se a orientacao da tela mudar)
     @Override
-    public void onSurfaceChanged(GL10 gl10, int i, int i1) {
-        //i eh largura e i1 altura
-        GLES20.glViewport(0, 0, i, i1);
+    public void onSurfaceChanged(GL10 gl10, int width, int height) {
+        GLES20.glViewport(0, 0, width, height);
+
+        float ratio = (float) width/height;
+        //essa matriz de projecao eh aplicada nas coordenadas dos objetos desenhados em onDrawFrame()
+        Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3,7);
     }
 
     //chamada sempre que necessario redesenhar a view
@@ -39,7 +49,13 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         //redesenha a cor de fundo
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
-        mTriangle.draw();
+        //calcula a transformacao da view da camera por setlookatm e combina com a matriz de projecao pelo multiplymm
+        //estabelece a posicao da camera
+        Matrix.setLookAtM(mViewMatrix, 0,0,0,-3,0f,0f,0f,0f,1f,0f);
+        //calcula a transformacao da view da camera e da projecao
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
+        //desenha o triangulo
+        mTriangle.draw(mMVPMatrix);
     }
 
     public static int loadShader(int type, String shaderCode) {

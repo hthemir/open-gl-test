@@ -23,10 +23,15 @@ public abstract class Shape {
 
     //VARIAVEIS PROS SHADERS E PROGRAMA
     //codigo grafico de OpenGL ES para renderizar os vertices da forma (GLSL)
+
     private final String mVertexShaderCode =
-            "attribute vec4 vPosition;" +       //vetor (x,y,z,w) nao global
+            //essa matrix prove uma maneira de manipular as coordenadas dos objetos que utilizam esse shader de vertice
+            "uniform mat4 uMVPMatrix;" +              //matriz (x,y,z,w) global
+            "attribute vec4 vPosition;" +     //vetor (x,y,z,w) nao global
             "void main() {" +
-            "   gl_Position = vPosition;" +     //posicao de saida do vertice atual
+            //a matriz deve ser inclusa como um modificador de gl_Position
+            //importante notar que a matriz deve vir primeiro na multiplicacao para o produto ser correto
+            "  gl_Position = uMVPMatrix * vPosition;" +
             "}";
     //codigo OpenGL ES para renderiza a face da forma com cores ou texturas
     private final String mFragmentShaderCode =
@@ -37,6 +42,8 @@ public abstract class Shape {
             "}";
     //objeto OpenGLES que contem os shaders usados para desenhar uma forma ou mais
     private int mProgram;
+    //usado para acessar e estabelecer a transformacao de view
+    private int mMVPMatrixHandle;
 
     //VARIAVEIS PARA DESENHAR
     private int mPositionHandle;
@@ -59,7 +66,7 @@ public abstract class Shape {
 
         //cria um buffer float a partir do buffer de bytes
         vertexBuffer = bb.asFloatBuffer();
-        //adiciona as coordenadas do triangulo ao buffer
+        //adiciona as coordenadas da forma ao buffer
         vertexBuffer.put(mCoords);
         //poe o buffer para ler a primeira coordenada
         vertexBuffer.position(0);
@@ -77,23 +84,28 @@ public abstract class Shape {
         GLES20.glLinkProgram(mProgram);
     }
 
-    public void draw() {
+    public void draw(float[] mvpMatrix) {
         //adiciona programa ao ambiente
         GLES20.glUseProgram(mProgram);
 
         //pega o controle da posicao vo shader de vertice
         mPositionHandle = GLES20.glGetAttribLocation(mProgram, "vPosition");
-        //libera o controle aos vertices do triangulo
+        //libera o controle aos vertices da forma
         GLES20.glEnableVertexAttribArray(mPositionHandle);
-        //prepara os dados de coordenada do triangulo
+        //prepara os dados de coordenada da forma
         GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, vertexStride, vertexBuffer);
 
         //pega o controle da cor do shader de fragmento
         mColorHandle = GLES20.glGetUniformLocation(mProgram, "vColor");
-        //estabelece a cor para desenhar o triangulo
+        //estabelece a cor para desenhar a forma
         GLES20.glUniform4fv(mColorHandle, 1, mColor, 0);
 
-        //desenha o triangulo
+        //pega o controle para configurar a matriz de transformacao
+        mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix");
+        //passa a projecao e a view de transformacao para o shader
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mvpMatrix, 0);
+
+        //desenha a forma
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, vertexCount);
         //desabilita a lista de vertices
         GLES20.glDisableVertexAttribArray(mPositionHandle);
