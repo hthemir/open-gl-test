@@ -3,6 +3,7 @@ package com.example.hugo.testopengl;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.os.SystemClock;
 
 import com.example.hugo.testopengl.shapes.Square;
 import com.example.hugo.testopengl.shapes.Triangle;
@@ -22,6 +23,9 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     private final float[] mMVPMatrix = new float[16];
     private final float[] mProjectionMatrix = new float[16];
     private final float[] mViewMatrix = new float[16];
+
+    //matriz para adicionar movimento
+    private final float[] mRotationMatrix = new float[16];
 
     //chamada uma vez para inicializar o ambiente da view OpenGL ES
     @Override
@@ -49,13 +53,25 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         //redesenha a cor de fundo
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
+        float[] scratch = new float[16];
+
+        //criar uma transformacao de rotacao para a forma
+        long time = SystemClock.uptimeMillis() % 4000L;
+        float angle = 0.090f * ((int) time);
+        Matrix.setRotateM(mRotationMatrix, 0, angle, 0,0, -1f);
+
         //calcula a transformacao da view da camera por setlookatm e combina com a matriz de projecao pelo multiplymm
         //estabelece a posicao da camera
         Matrix.setLookAtM(mViewMatrix, 0,0,0,-3,0f,0f,0f,0f,1f,0f);
         //calcula a transformacao da view da camera e da projecao
         Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
+
+        //combina a matriz de rotacao com a as view de projecao e camera
+        //a ordem eh importante para garantir o resultado correto da multiplicacao
+        Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, mRotationMatrix, 0);
+
         //desenha o triangulo
-        mTriangle.draw(mMVPMatrix);
+        mTriangle.draw(scratch);
     }
 
     public static int loadShader(int type, String shaderCode) {
