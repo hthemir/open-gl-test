@@ -27,6 +27,10 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     //matriz para adicionar movimento
     private final float[] mRotationMatrix = new float[16];
 
+    //deve ser volatil pois esta rodando em uma thread diferente da main
+    //angulo usado para evento de toque
+    private volatile float mAngle;
+
     //chamada uma vez para inicializar o ambiente da view OpenGL ES
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
@@ -56,9 +60,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         float[] scratch = new float[16];
 
         //criar uma transformacao de rotacao para a forma
-        long time = SystemClock.uptimeMillis() % 4000L;
-        float angle = 0.090f * ((int) time);
-        Matrix.setRotateM(mRotationMatrix, 0, angle, 0,0, -1f);
+        Matrix.setRotateM(mRotationMatrix, 0, mAngle, 0,0, -1f);
 
         //calcula a transformacao da view da camera por setlookatm e combina com a matriz de projecao pelo multiplymm
         //estabelece a posicao da camera
@@ -83,5 +85,13 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         GLES20.glCompileShader(shader);
 
         return shader;
+    }
+
+    public void setAngle(float angle) {
+        mAngle = angle;
+    }
+
+    public float getAngle() {
+        return mAngle;
     }
 }
